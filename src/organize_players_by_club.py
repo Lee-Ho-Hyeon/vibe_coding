@@ -1,72 +1,122 @@
+import os
 import requests
 import pandas as pd
 
-def get_club_players_final(club_qid):
-    # 1. 사용자가 혹시 소문자 'q'를 입력했을 경우를 대비해 대문자 'Q'로 강제 변환
-    club_qid = str(club_qid).strip().upper()
-    if not club_qid.startswith('Q'):
-        club_qid = 'Q' + club_qid
 
-    url = 'https://query.wikidata.org/sparql'
-    
-    # 2. 위키데이터가 가장 정확하게 인식하는 표준 축구선수-소속팀 매핑 쿼리
+def load_name_corrections(path="name_corrections.csv"):
+    """
+    name_corrections.csv 형식:
+    qid,wikidata_name,display_name
+    Q11571,크리스티아누 호날두,크리스티아누 호날두
+    Q441756,프란시스코 요렌테 헨토,마르코스 요렌테
+    """
+
+    if not os.path.exists(path):
+        print(f"보정 파일이 없습니다. 새로 생성하세요: {path}")
+        return {}
+
+    df = pd.read_csv(path, encoding="utf-8-sig")
+
+    corrections = {}
+    for _, row in df.iterrows():
+        qid = str(row["qid"]).strip()
+        display_name = str(row["display_name"]).strip()
+
+        if qid and display_name:
+            corrections[qid] = display_name
+
+    return corrections
+
+
+def get_club_players(club_qid, correction_path="name_corrections.csv"):
+    club_qid = str(club_qid).strip().upper()
+    if not club_qid.startswith("Q"):
+        club_qid = "Q" + club_qid
+
+    name_corrections = load_name_corrections(correction_path)
+
+    url = "https://query.wikidata.org/sparql"
+
     query = f"""
-    SELECT DISTINCT ?player ?playerLabel ?countryLabel WHERE {{
-      ?player wdt:p106 wd:q934851 .       # 직업: 축구 선수
-      ?player wdt:p54 wd:{club_qid} .      # 소속 팀: 입력한 구단 ID (대문자 Q 보장)
-      
-      # 국적 정보는 안전하게 선택적으로 가져옴
-      OPTIONAL {{ ?player wdt:p27 ?country . }}
-      
-      # 한글 이름 우선, 없으면 영어 이름 출력
-      SERVICE wikibase:label {{ 
-        bd:serviceParam wikibase:language "ko,en". 
+    SELECT DISTINCT ?player ?playerLabel ?playerAltLabel ?countryLabel WHERE {{
+      ?player p:P54 ?statement .
+      ?statement ps:P54 wd:{club_qid} .
+
+      OPTIONAL {{ ?player wdt:P27 ?country . }}
+
+      SERVICE wikibase:label {{
+        bd:serviceParam wikibase:language "ko,en".
+        ?player rdfs:label ?playerLabel .
+        ?player skos:altLabel ?playerAltLabel .
+        ?country rdfs:label ?countryLabel .
       }}
     }}
     """
-    
-    # 서버 차단을 막기 위한 표준 헤더 설정
+
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) FootballDBProject/1.0'
+        "User-Agent": "FootballDBProject/1.0"
     }
-    
-    print(f"📡 위키데이터에서 구단 번호 [{club_qid}]의 역대 선수단을 최종 수집 중...")
-    
-    try:
-        response = requests.get(url, params={'format': 'json', 'query': query}, headers=headers)
-        
-        if response.status_code != 200:
-            print(f"❌ 서버 응답 실패 (에러 코드: {response.status_code})")
-            return
-            
-        data = response.json()
-        results = []
-        
-        for item in data['results']['bindings']:
-            # 선수 고유 QID 분리
-            qid = item['player']['value'].split('/')[-1]
-            player_name = item['playerLabel']['value']
-            nationality = item['countryLabel']['value'] if 'countryLabel' in item else "정보 없음"
-            
-            results.append({
-                '위키식별번호(QID)': qid,
-                '선수이름': player_name,
-                '국적': nationality,
-                '검색구단': club_qid
-            })
-            
-        df = pd.DataFrame(results)
-        filename = f"club_{club_qid}_final_lineup.csv"
-        df.to_csv(filename, index=False, encoding='utf-8-sig')
-        
-        print("\n==================================================")
-        print(f"✅ 수집 완료! 총 {len(df)}명의 역대 선수를 찾았습니다.")
-        print(f"📂 저장된 파일명: {filename}")
-        print("==================================================")
-        
-    except Exception as e:
-        print(f"❌ 실행 중 오류가 발생했습니다: {e}")
+
+    response = requests.get(
+        url,
+        params={"format": "json", "query": query},
+        headers=headers,
+        timeout=30
+    )
+
+    if response.status_code != 200:
+        print("서버 응답 실패:", response.status_code)
+        print(response.text[:1000])
+        return
+
+    data = response.json()
+    rows = []
+
+    for item in data["results"]["bindings"]:
+        qid = item["player"]["value"].split("/")[-1]
+        wikidata_name = item.get("playerLabel", {}).get("value", "")
+        alias = item.get("playerAltLabel", {}).get("value", "")
+        country = item.get("countryLabel", {}).get("value", "정보 없음")
+
+        display_name = name_corrections.get(qid, wikidata_name)
+
+        rows.append({
+            "qid": qid,
+            "wikidata_name": wikidata_name,
+            "display_name": display_name,
+            "alias": alias,
+            "country": country,
+            "club_qid": club_qid
+        })
+
+    df = pd.DataFrame(rows)
+
+    if df.empty:
+        print("수집 결과가 없습니다.")
+        return
+
+    df = (
+        df.groupby(
+            ["qid", "wikidata_name", "display_name", "country", "club_qid"],
+            as_index=False
+        )
+        .agg({
+            "alias": lambda x: ", ".join(sorted(set(v for v in x if v)))
+        })
+    )
+
+    filename = f"club_{club_qid}_players.csv"
+    df.to_csv(filename, index=False, encoding="utf-8-sig")
+
+    print("수집 완료:", len(df), "명")
+    print("저장 파일:", filename)
+
+    print("\n이름 보정 적용 예시:")
+    corrected = df[df["wikidata_name"] != df["display_name"]]
+    print(corrected.head(20))
+
+    return df
+
 
 if __name__ == "__main__":
-    # 소문자 'q8682'를 넣어도 코드 내부에서 자동으로 대문자 'Q8682'로 바꿔서 처리합니다!
-    get_club_players_final("Q8682")
+    get_club_players("Q9616")
