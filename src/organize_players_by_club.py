@@ -119,4 +119,4 @@ def get_club_players(club_qid, correction_path="name_corrections.csv"):
 
 
 if __name__ == "__main__":
-    get_club_players("Q9616")
+    get_club_players("Q2609")
