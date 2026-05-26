@@ -3,7 +3,7 @@ import pandas as pd
 
 
 DB_PATH = "football_players.db"
-PLAYER_CSV_PATH = "club_Q2609_players.csv"
+PLAYER_CSV_PATH = "club_Q15789_players.csv"
 CLUB_CSV_PATH = "C:\\Users\\LG\\Documents\\GitHub\\vibe_coding\\data\\club_qid_list.csv"
 
 
