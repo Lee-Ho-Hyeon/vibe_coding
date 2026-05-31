@@ -1,10 +1,21 @@
 import sqlite3
 import pandas as pd
+from pathlib import Path
+import re
 
 
 DB_PATH = "football_players.db"
-PLAYER_CSV_PATH = "club_Q15789_players.csv"
-CLUB_CSV_PATH = "C:\\Users\\LG\\Documents\\GitHub\\vibe_coding\\data\\club_qid_list.csv"
+
+BASE_DIR = Path(r"C:\Users\LG\Documents\GitHub\vibe_coding")
+DATA_DIR = BASE_DIR / "data"
+
+CLUB_CSV_PATH = DATA_DIR / "club_qid_list.csv"
+
+
+def has_korean(text):
+    if pd.isna(text):
+        return False
+    return bool(re.search(r"[가-힣]", str(text)))
 
 
 def create_tables(conn):
@@ -14,7 +25,8 @@ def create_tables(conn):
     CREATE TABLE IF NOT EXISTS players (
         qid TEXT PRIMARY KEY,
         wikidata_name TEXT,
-        display_name TEXT
+        display_name TEXT,
+        has_korean_name INTEGER DEFAULT 0
     )
     """)
 
@@ -58,7 +70,6 @@ def create_tables(conn):
 
 def insert_clubs(conn, club_csv_path):
     df = pd.read_csv(club_csv_path, encoding="utf-8-sig")
-
     cur = conn.cursor()
 
     for _, row in df.iterrows():
@@ -75,7 +86,6 @@ def insert_clubs(conn, club_csv_path):
 
 def insert_players_from_csv(conn, player_csv_path):
     df = pd.read_csv(player_csv_path, encoding="utf-8-sig")
-
     cur = conn.cursor()
 
     for _, row in df.iterrows():
@@ -88,10 +98,19 @@ def insert_players_from_csv(conn, player_csv_path):
         alias_raw = row.get("alias", "")
         alias_raw = "" if pd.isna(alias_raw) else str(alias_raw)
 
+        aliases = [a.strip() for a in alias_raw.split("|") if a.strip()]
+
+        korean_flag = (
+            has_korean(wikidata_name)
+            or has_korean(display_name)
+            or any(has_korean(alias) for alias in aliases)
+        )
+
         cur.execute("""
-        INSERT OR REPLACE INTO players (qid, wikidata_name, display_name)
-        VALUES (?, ?, ?)
-        """, (qid, wikidata_name, display_name))
+        INSERT OR REPLACE INTO players
+        (qid, wikidata_name, display_name, has_korean_name)
+        VALUES (?, ?, ?, ?)
+        """, (qid, wikidata_name, display_name, 1 if korean_flag else 0))
 
         if country and country != "정보 없음":
             cur.execute("""
@@ -104,8 +123,6 @@ def insert_players_from_csv(conn, player_csv_path):
         VALUES (?, ?)
         """, (qid, club_qid))
 
-        aliases = [a.strip() for a in alias_raw.split(",") if a.strip()]
-
         for alias in aliases:
             cur.execute("""
             INSERT OR IGNORE INTO player_aliases (qid, alias)
@@ -115,12 +132,27 @@ def insert_players_from_csv(conn, player_csv_path):
     conn.commit()
 
 
+def insert_all_club_player_csvs(conn):
+    club_df = pd.read_csv(CLUB_CSV_PATH, encoding="utf-8-sig")
+
+    for _, row in club_df.iterrows():
+        club_qid = str(row["club_qid"]).strip()
+        player_csv_path = DATA_DIR / f"club_{club_qid}_players.csv"
+
+        if not player_csv_path.exists():
+            print(f"파일 없음, 건너뜀: {player_csv_path}")
+            continue
+
+        print(f"DB 저장 중: {player_csv_path.name}")
+        insert_players_from_csv(conn, player_csv_path)
+
+
 def main():
     conn = sqlite3.connect(DB_PATH)
 
     create_tables(conn)
     insert_clubs(conn, CLUB_CSV_PATH)
-    insert_players_from_csv(conn, PLAYER_CSV_PATH)
+    insert_all_club_player_csvs(conn)
 
     conn.close()
 
