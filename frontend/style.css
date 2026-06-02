@@ -1,0 +1,145 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f4f6f8;
+    color: #222;
+}
+
+header {
+    background-color: #1f3b57;
+    color: white;
+    padding: 30px 20px;
+    text-align: center;
+}
+
+header h1 {
+    margin: 0 0 10px 0;
+}
+
+main {
+    width: 90%;
+    max-width: 1000px;
+    margin: 30px auto;
+}
+
+section {
+    background-color: white;
+    margin-bottom: 20px;
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+}
+
+h2 {
+    margin-top: 0;
+    color: #1f3b57;
+}
+
+.search-box {
+    display: flex;
+    gap: 10px;
+}
+
+select,
+input,
+button {
+    padding: 10px;
+    font-size: 16px;
+}
+
+input {
+    flex: 1;
+}
+
+button {
+    background-color: #1f3b57;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #2f5d85;
+}
+
+.result-box {
+    margin-top: 15px;
+}
+
+.result-item {
+    padding: 10px;
+    margin-bottom: 8px;
+    background-color: #f0f3f5;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.result-item:hover {
+    background-color: #dfe8ef;
+}
+
+#playerDetail h3 {
+    margin-top: 0;
+    color: #1f3b57;
+}
+
+#playerDetail ul {
+    padding-left: 20px;
+}
+
+.search-box-wrapper {
+    position: relative;
+}
+
+.autocomplete-box {
+    position: absolute;
+    top: 55px;
+    left: 0;
+    right: 0;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    max-height: 320px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+}
+
+.autocomplete-box .result-item {
+    margin: 0;
+    border-radius: 0;
+    border-bottom: 1px solid #eee;
+}
+
+.autocomplete-box .result-item:hover {
+    background-color: #e9f1f7;
+}
+
+.home-button {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+
+    background-color: #ffffff;
+    color: #1f3b57;
+
+    border: 2px solid #1f3b57;
+    border-radius: 8px;
+
+    padding: 10px 15px;
+
+    text-decoration: none;
+    font-weight: bold;
+
+    z-index: 9999;
+}
+
+.home-button:hover {
+    background-color: #1f3b57;
+    color: white;
+}

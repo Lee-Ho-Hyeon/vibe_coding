@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>축구 선수 경력 검색 시스템</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <a href="index.html" class="home-button">
+        홈
+    </a>
+
+    <header>
+        <h1>축구 선수 경력 검색 시스템</h1>
+        <p>선수 이름, 국적, 클럽을 기준으로 축구선수 정보를 검색할 수 있습니다.</p>
+    </header>
+
+    <main>
+        <section class="search-section">
+            <h2>검색</h2>
+
+            <div class="search-box-wrapper">
+                <div class="search-box">
+                    <select id="searchType">
+                        <option value="player">선수 검색</option>
+                        <option value="country">국적 검색</option>
+                        <option value="club">클럽 검색</option>
+                    </select>
+
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        placeholder="검색어를 입력하세요"
+                    >
+
+                    <button id="searchButton">검색</button>
+                </div>
+
+                <div id="searchResults" class="autocomplete-box"></div>
+            </div>
+        </section>
+
+        <section class="club-list-section">
+            <h2>클럽 목록</h2>
+            <button id="loadClubsButton">클럽 목록 보기</button>
+
+            <div id="clubList" class="result-box">
+                <!-- 클럽 목록이 여기에 표시됩니다 -->
+            </div>
+        </section>
+
+        <section class="result-section">
+            <h2>검색 결과</h2>
+
+            <div id="searchResults" class="result-box">
+                <!-- 검색 결과가 여기에 표시됩니다 -->
+            </div>
+        </section>
+
+        <section class="detail-section">
+            <h2>선수 상세 정보</h2>
+
+            <div id="playerDetail" class="result-box">
+                <!-- 선수 상세 정보가 여기에 표시됩니다 -->
+            </div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
