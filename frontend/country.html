@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>국적별 선수 목록</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <a href="index.html" class="home-button">
+        홈
+    </a>
+
+    <header>
+        <h1 id="countryTitle">국적별 선수 목록</h1>
+        <p>선택한 국적의 선수 목록입니다.</p>
+    </header>
+
+    <main>
+        <section>
+            <button onclick="history.back()">뒤로가기</button>
+
+            <div id="countryPlayers" class="result-box">
+                선수 목록을 불러오는 중입니다.
+            </div>
+        </section>
+    </main>
+
+    <script src="country.js"></script>
+</body>
+</html>
